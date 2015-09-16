@@ -22,9 +22,12 @@ app = Celery('kodi_repo_task',
 
 app.conf.update(
     CELERY_ACCEPT_CONTENT = ['json'],
+    CELERY_TASK_SERIALIZER = 'json',
+    CELERY_RESULT_SERIALIZER = 'json',
+
     CELERYBEAT_SCHEDULE = {
         'update_kodi_repos_details': {
-            'task': 'tasks.periodic_update_kodi_repos_details',
+            'task': 'kodi_repo_task.periodic_update_kodi_repos_details',
             'schedule': timedelta(minutes=15),
         },
     }
@@ -45,5 +48,5 @@ def periodic_update_kodi_repos_details():
     return github_handler.update_kodi_repos_redis()
 
 
-## Update cached details once at startup
+# Update cached details once at startup
 github_handler.update_kodi_repos_redis()
