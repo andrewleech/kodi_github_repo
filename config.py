@@ -23,6 +23,8 @@ config = config.get('kodi_github_repo')
 assert isinstance(config.get('repositories'), list) and len(config.get('repositories')), "Missing repositories from config"
 
 ## Defaults
+github_personal_access_token = None
+
 repositories = []
 debug_server = dotdict(
 	port = 8000,

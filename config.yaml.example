@@ -1,5 +1,7 @@
 kodi_github_repo:
 
+  github_personal_access_token: < get one from https://github.com/settings/tokens >
+
   repositories:
     - https://github.com/andrewleech/plugin.video.sbsondemand
     - https://github.com/andrewleech/script.module.pyopenssl
