@@ -10,7 +10,7 @@ import hashlib
 import logging
 import jsonpickle
 import semantic_version
-from github import Github
+from github3 import login, GitHubError
 
 _log = logging.getLogger(__name__)
 
@@ -32,13 +32,17 @@ def repositories():
     """
     _log.info("Getting configured repositories details...")
     _repos = []
-    _github = Github()
+    _github = login(token=config.github_personal_access_token)
+
     url_re = re.compile('github\.com/(.*?)/(.*?)(?:\.git$|$)')
     for repo_url in config.repositories:
         repo_parts = re.findall(url_re, repo_url)
         if repo_parts:
             user, repo = repo_parts[0][0:2]
-            github_repo = _github.get_user(user).get_repo(repo)
+            try:
+                github_repo = _github.repository(user,repo)
+            except GitHubError:
+                raise Exception("Github error: %s/%s"%(user, repo))
             _repos.append(github_repo)
     return _repos
 
@@ -47,15 +51,52 @@ def repo_versions(repo):
     Parses all git tags on the repo for semantic version numbera
     """
     versions = {}
-    for tag in repo.get_tags():
-        tag_vers_match = re.findall(r'(\d+.\d+.\d+.*?) ?', tag.name)
+    # for release in repo.iter_releases():
+    #     name = release.tag_name
+    for tag in repo.iter_tags():
+        name = tag.name
+        tag_vers_match = re.findall(r'(\d+\.\d+\.\d+.*?) ?', name)
         if tag_vers_match:
             tag_vers = tag_vers_match[0]
-            versions[tag_vers] = (tag.zipball_url, tag.name)
+
+            ## The API is annoying as far as zipfiles are concerned...
+            # download_asset = None
+            # download_asset_name = repo.name + ".zip"
+            # download_url = None
+            # for asset in release.iter_assets():
+            #     if asset.name.endswith('.zip'):
+            #         download_asset = asset
+            #     if asset.name == download_asset_name:
+            #         break
+            # if download_asset:
+            #     if download_asset.name != download_asset_name:
+            #         # fix name
+            #         pass
+            #     download_url = download_asset.download_url
+
+            ## The auto-generated zip link on a github created release page (as seen in browser) gives me a zip with
+            ## the correct name, whereas the api only ever seems to give me one with the username and sha in the name.
+
+            ## just throw a hammer at it, and hope it keeps giving me the goods
+            # download_url = "https://codeload.github.com/{owner}/{repo}/zip/{tag}".format(owner=repo.owner, repo=repo.name, tag=name)
+            download_url = "https://github.com/{owner}/{repo}/archive/{tag}.zip".format(owner=repo.owner, repo=repo.name, tag=name)
+
+
+            versions[tag_vers] = (download_url, name)
+
     return versions
 
 def newest_repo_version(versions):
-    newest_version = sorted(versions.keys(), key = lambda v:semantic_version.Version(v))[-1]
+    newest_version = None
+    newest_semvers = None
+    for entry in versions.keys():
+        try:
+            semvers = semantic_version.Version(entry)
+            if newest_semvers is None or (semvers > newest_semvers and not semvers.prerelease):
+                newest_version = entry
+                newest_semvers = semvers
+        except ValueError as ex:
+            _log.exception("invalid tag version (%s) from %s" % (entry, versions[entry][1]))
     return newest_version, versions[newest_version]
 
 def kodi_repos(repos):
@@ -78,7 +119,7 @@ def kodi_repos(repos):
         repo_det.newest_tagname = newest_tagname
 
         # Grab a copy of addon.xml from the latest version
-        addon_xml_handle = repo_det.repo.get_file_contents('addon.xml',newest_tagname)
+        addon_xml_handle = repo_det.repo.contents('addon.xml',newest_tagname)
         if addon_xml_handle.encoding == 'base64':
             addon_xml = base64.b64decode(addon_xml_handle.content)
         else:
