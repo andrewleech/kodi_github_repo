@@ -49,4 +49,4 @@ def periodic_update_kodi_repos_details():
 
 
 # Update cached details once at startup
-github_handler.update_kodi_repos_redis()
+periodic_update_kodi_repos_details.delay()
