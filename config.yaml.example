@@ -5,7 +5,7 @@ kodi_github_repo:
   repositories:
     - https://github.com/andrewleech/plugin.video.sbsondemand
     - https://github.com/andrewleech/script.module.pyopenssl
-    - https://github.com/beenje/script.module.requests
+    - https://github.com/andrewleech/script.module.requests
     - https://github.com/andrewleech/skin.corona
     - https://github.com/andrewleech/plugin.video.netflixbmc
     - https://github.com/andrewleech/plugin.program.chrome.launcher.git
@@ -18,3 +18,5 @@ kodi_github_repo:
 
   debug_server:
     port: 45210
+
+  logfile: ../run/flask.log

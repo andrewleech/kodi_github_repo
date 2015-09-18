@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block content %}
+  <div class="jumbo">
+    <h2>Welcome to the alelec kodi repository</h2>
+  </div>
+    {% for rep in details %}
+        {% set name = details[rep].reponame %}
+        {% set vers = details[rep].newest_version %}
+        {% set desc = details[rep].description %}
+        {% set homepage = details[rep].homepage %}
+        <div>
+            <h3><a href="{{ url_for('addon_page', addon_id=name)}}">{{ name }}</a></h3>
+            {{ desc }}
+            <br><b>addon:</b> <a href="{{ url_for('zip_url', addon_id=name, zip_addon_id=name, vers=vers) }}">{{ name }}-{{ vers }}.zip</a>
+            <br><b>homepage:</b> <a href="{{ homepage }}">{{ homepage }}</a>
+        </div>
+    {% endfor %}
+{% endblock %}

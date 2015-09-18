@@ -10,48 +10,110 @@ __maintainer__ = "Andrew Leech"
 __email__ = "andrew@alelec.net"
 __status__ = "Development"
 
-from flask import Flask, redirect, abort
+from flask import Flask, redirect, abort, url_for, render_template, send_from_directory
 from flask.ext.cache import Cache
 
+import os
 import redis
 import config
+import pprint
 import jsonpickle
 import github_handler
-import semantic_version
+from functools import wraps
 
 app = Flask(__name__)
-#cache = Cache(app,config={'CACHE_TYPE': 'simple'})
+
 cache = Cache(app,config={'CACHE_TYPE': 'redis',
                           'CACHE_KEY_PREFIX': 'kodi_repo_app',
                           'CACHE_REDIS_URL': config.redis_url
                            })
 redisStore = redis.StrictRedis(**config.redis_server)
 
+app.config['PROPAGATE_EXCEPTIONS'] = True
+
+_log = None
+if not app.debug and config.logfile:
+    import logging
+    from logging.handlers import TimedRotatingFileHandler
+    logfile = config.logfile
+    if not os.path.isabs(logfile):
+        logfile = os.path.abspath(os.path.join(os.path.dirname(__file__), logfile))
+#     logfile = os.path.abspath(logfile)
+    file_handler = TimedRotatingFileHandler(logfile, backupCount=7)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+
+    app.logger.addHandler(file_handler)
+    app.logger.warn("startup")
+
+def log_exception(exception=Exception, logger=app.logger):
+    def deco(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except exception as err:
+                if logger:
+                    logger.exception(err)
+                raise
+        return wrapper
+    return deco
+
+@app.route('/favicon.png')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.png')
+
+@app.errorhandler(404)
+@cache.cached(timeout=0)
+@log_exception()
+def page_not_found(e):
+    return render_template('404.html'), 404
+
 @app.route('/')
-def main_page():
-    return 'TBD'
+# @cache.cached(timeout=1*60)
+@log_exception()
+def home():
+    details = jsonpickle.decode(redisStore.get(config.redis_keys.details).decode())
+    return render_template('home.html', details=details)
 
 @app.route('/repo/addons.xml')
-@cache.cached(timeout=1*60)
+@cache.cached(timeout=5*60)
+@log_exception()
 def addons_xml_page():
     addons_xml, addons_xml_md5 = jsonpickle.decode(redisStore.get(config.redis_keys.addons_xml).decode())
     return addons_xml
 
 @app.route('/repo/addons.xml.md5')
-@cache.cached(timeout=1*60)
+@cache.cached(timeout=5*60)
+@log_exception()
 def addons_xml_md5_page():
     addons_xml, addons_xml_md5 = jsonpickle.decode(redisStore.get(config.redis_keys.addons_xml).decode())
     return addons_xml_md5
 
+@app.route('/repo/<addon_id>')
+@log_exception()
+def addon_page(addon_id):
+    details = jsonpickle.decode(redisStore.get(config.redis_keys.details).decode())
+    if addon_id in details:
+        # return render_template('addon.html', repo=details[addon_id])
+        repo = details[addon_id]
+        url = "https://github.com/{owner}/{reponame}/tree/{newest_tagname}".format(
+                owner=repo.owner, reponame=repo.reponame, newest_tagname=repo.newest_tagname)
+        return redirect(url)
+    else:
+        return abort(404)
+
 @app.route('/repo/<addon_id>/<zip_addon_id>-<vers>.zip')
+@log_exception()
 def zip_url(addon_id, zip_addon_id, vers):
     url = None
     details = jsonpickle.decode(redisStore.get(config.redis_keys.details).decode())
-    if zip_addon_id in details:
+    if addon_id == zip_addon_id and zip_addon_id in details:
         repo_dets = details[zip_addon_id]
-        assert isinstance(repo_dets, github_handler.repo_details)
-        if vers in repo_dets.all_versions:
-            url, tagname = repo_dets.all_versions[vers]
+        assert isinstance(repo_dets, github_handler.RepoDetail)
+        if vers in repo_dets.downloads:
+            url = repo_dets.downloads[vers]
     if url:
         return redirect(url)
     else:
@@ -60,6 +122,8 @@ def zip_url(addon_id, zip_addon_id, vers):
 if __name__ == '__main__':
     from werkzeug.contrib.profiler import ProfilerMiddleware
     app.config['PROFILE'] = True
+
     app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
+
     app.run(debug=True, host='0.0.0.0', port=config.debug_server.port)
 

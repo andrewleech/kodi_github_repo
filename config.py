@@ -35,6 +35,7 @@ redis_server = dotdict(
     port=6379,
     db=0)
 
+logfile = None
 
 ## Set up shared static config for app
 redis_url = "redis://{host}:{port}/{db}".format(**redis_server)
