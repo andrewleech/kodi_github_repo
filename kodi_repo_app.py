@@ -64,7 +64,6 @@ def favicon(ext):
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.'+ext)
 
 @app.errorhandler(404)
-@cache.cached(timeout=0)
 @log_exception()
 def page_not_found(e):
     app.logger.error("%s : %s" % (e, request.path))
