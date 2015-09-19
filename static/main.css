@@ -20,11 +20,16 @@ header {
 header h1.logo {
   margin: 0;
   font-size: 1.7em;
+  line-height: 1.2em;
   color: #fff;
-  text-transform: uppercase;
+  /*text-transform: uppercase;*/
   float: left;
 }
- 
+
+header h1.logo img {
+  /*margin-top: 5px;*/
+}
+
 header h1.logo:hover {
   color: #fff;
   text-decoration: none;
@@ -48,13 +53,24 @@ div.jumbo {
           border-radius: 6px;
 }
  
-h2 {
+/*div.container {*/
+  /*padding: 10px 0 10px 0;*/
+/*}*/
+
+h1 {
   font-size: 3em;
   margin-top: 40px;
   text-align: center;
   letter-spacing: -2px;
 }
  
+h2 {
+  font-size: 1.9em;
+  margin-top: 40px;
+  text-align: center;
+  letter-spacing: -1px;
+}
+
 h3 {
   font-size: 1.7em;
   font-weight: 100;

@@ -1,8 +1,16 @@
 {% extends "layout.html" %}
+{% block title %}alelec{% endblock %}
 {% block content %}
   <div class="jumbo">
-    <h2>Welcome to the alelec kodi repository</h2>
+    <h1>Welcome to the alelec kodi repository</h1>
   </div>
+  <div style="padding-top: 10px;">
+  This is a repository server for <a href="http://kodi.tv/">Kodi (http://kodi.tv/)</a><br>
+  It's designed to automatically serve addons directly from github, parsing for version tags and building releases on demand.<br>
+  <br>
+  See <a href="https://github.com/andrewleech/kodi_github_repo">https://github.com/andrewleech/kodi_github_repo</a> for more info about the server.<br>
+
+  <h2>Hosted Repositories</h2>
     {% for rep in details %}
         {% set name = details[rep].reponame %}
         {% set vers = details[rep].newest_version %}
@@ -15,4 +23,5 @@
             <br><b>homepage:</b> <a href="{{ homepage }}">{{ homepage }}</a>
         </div>
     {% endfor %}
+  </div>
 {% endblock %}
