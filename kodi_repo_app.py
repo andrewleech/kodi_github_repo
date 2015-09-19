@@ -10,7 +10,7 @@ __maintainer__ = "Andrew Leech"
 __email__ = "andrew@alelec.net"
 __status__ = "Development"
 
-from flask import Flask, redirect, abort, url_for, render_template, send_from_directory
+from flask import Flask, redirect, abort, url_for, render_template, send_from_directory, request
 from flask.ext.cache import Cache
 
 import os
@@ -31,14 +31,12 @@ redisStore = redis.StrictRedis(**config.redis_server)
 
 app.config['PROPAGATE_EXCEPTIONS'] = True
 
-_log = None
 if not app.debug and config.logfile:
     import logging
     from logging.handlers import TimedRotatingFileHandler
     logfile = config.logfile
     if not os.path.isabs(logfile):
         logfile = os.path.abspath(os.path.join(os.path.dirname(__file__), logfile))
-#     logfile = os.path.abspath(logfile)
     file_handler = TimedRotatingFileHandler(logfile, backupCount=7)
 
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -60,18 +58,19 @@ def log_exception(exception=Exception, logger=app.logger):
         return wrapper
     return deco
 
-@app.route('/favicon.png')
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.png')
+@app.route('/favicon.<ext>')
+def favicon(ext):
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.'+ext)
 
 @app.errorhandler(404)
 @cache.cached(timeout=0)
 @log_exception()
 def page_not_found(e):
+    app.logger.error("%s : %s" % (e, request.path))
     return render_template('404.html'), 404
 
 @app.route('/')
-# @cache.cached(timeout=1*60)
+@cache.cached(timeout=5*60)
 @log_exception()
 def home():
     details = jsonpickle.decode(redisStore.get(config.redis_keys.details).decode())
@@ -92,6 +91,7 @@ def addons_xml_md5_page():
     return addons_xml_md5
 
 @app.route('/repo/<addon_id>')
+@cache.cached(timeout=5*60)
 @log_exception()
 def addon_page(addon_id):
     details = jsonpickle.decode(redisStore.get(config.redis_keys.details).decode())
@@ -105,6 +105,7 @@ def addon_page(addon_id):
         return abort(404)
 
 @app.route('/repo/<addon_id>/<zip_addon_id>-<vers>.zip')
+@cache.cached(timeout=5*60)
 @log_exception()
 def zip_url(addon_id, zip_addon_id, vers):
     url = None
