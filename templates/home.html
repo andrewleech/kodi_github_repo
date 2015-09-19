@@ -5,10 +5,11 @@
     <h1>Welcome to the alelec kodi repository</h1>
   </div>
   <div style="padding-top: 10px;">
-  This is a repository server for <a href="http://kodi.tv/">Kodi (http://kodi.tv/)</a><br>
-  It's designed to automatically serve addons directly from github, parsing for version tags and building releases on demand.<br>
+  This is a repository server for <a href="http://kodi.tv/">Kodi (http://kodi.tv/)</a>
+  <br>To use this repo, download the zip file for <a href="{{ url_for('zip_url', addon_id='repository.alelec', zip_addon_id='repository.alelec') }}">repository.alelec</a> and install it into kodi by normal <a href="http://kodi.wiki/view/HOW-TO:Install_add-ons_from_zip_files">"Install from ZIP"</a> method
   <br>
-  See <a href="https://github.com/andrewleech/kodi_github_repo">https://github.com/andrewleech/kodi_github_repo</a> for more info about the server.<br>
+  <br>The server is designed to automatically serve addons directly from github, parsing for version tags and building releases on demand.
+  <br>See <a href="https://github.com/andrewleech/kodi_github_repo">https://github.com/andrewleech/kodi_github_repo</a> for more info about the server.
 
   <h2>Hosted Repositories</h2>
     {% for rep in details %}

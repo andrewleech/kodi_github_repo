@@ -19,6 +19,7 @@ import config
 import pprint
 import jsonpickle
 import github_handler
+import semantic_version
 from functools import wraps
 
 app = Flask(__name__)
@@ -70,7 +71,7 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 @app.route('/')
-@cache.cached(timeout=5*60)
+# @cache.cached(timeout=5*60)
 @log_exception()
 def home():
     details = jsonpickle.decode(redisStore.get(config.redis_keys.details).decode())
@@ -105,16 +106,22 @@ def addon_page(addon_id):
         return abort(404)
 
 @app.route('/repo/<addon_id>/<zip_addon_id>-<vers>.zip')
+@app.route('/repo/<addon_id>/<zip_addon_id>.zip')
 @cache.cached(timeout=5*60)
 @log_exception()
-def zip_url(addon_id, zip_addon_id, vers):
+def zip_url(addon_id, zip_addon_id, vers=None):
     url = None
     details = jsonpickle.decode(redisStore.get(config.redis_keys.details).decode())
-    if addon_id == zip_addon_id and zip_addon_id in details:
+    if (addon_id == zip_addon_id or zip_addon_id is None) and addon_id in details:
         repo_dets = details[zip_addon_id]
         assert isinstance(repo_dets, github_handler.RepoDetail)
-        if vers in repo_dets.downloads:
+
+        if not vers:
+            vers = sorted(repo_dets.downloads.keys(), key=lambda v:semantic_version.Version(v))[-1]
+
+        if vers and vers in repo_dets.downloads:
             url = repo_dets.downloads[vers]
+
     if url:
         return redirect(url)
     else:
